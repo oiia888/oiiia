@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Search Portal</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #fafafa; color: #333; }
+        .controls { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 6px; }
+        button { padding: 12px 24px; font-size: 16px; background: #238636; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2ea043; }
+        #viewer { width: 100%; height: 75vh; border: 1px solid #ddd; border-radius: 8px; background: white; padding: 15px; overflow-y: scroll; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <h2>Research Portal & Viewer</h2>
+    <div class="controls">
+        <input type="text" id="targetUrl" placeholder="https://example.com (見たいサイトのURL)">
+        <button onclick="fetchSiteData()">読み込み</button>
+    </div>
+
+    <div id="viewer">ここにサイトの内容が表示されます。</div>
+
+    <script>
+        async function fetchSiteData() {
+            const urlInput = document.getElementById('targetUrl').value;
+            const viewer = document.getElementById('viewer');
+            
+            if (!urlInput) {
+                alert("URLを入力してください");
+                return;
+            }
+
+            viewer.innerHTML = "<p style='color:gray;'>Googleサーバー経由で安全に取得中...</p>";
+
+            // 【ここを変更しました】i-FILTERが絶対にブロックできないGoogleのドメインを中継します
+            const proxyServer = "https://googleusercontent.com" + encodeURIComponent(urlInput);
+
+            try {
+                const response = await fetch(proxyServer);
+                if (!response.ok) throw new Error("Googleサーバーからの応答がありません。");
+                
+                const data = await response.text();
+                
+                // 取得したHTMLを画面に流し込む
+                viewer.innerHTML = data;
+                
+                // リンクをクリックしたときもこのシステム内で開く設定
+                const links = viewer.getElementsByTagName('a');
+                for (let a of links) {
+                    if(a.href && !a.href.startsWith('javascript:')) {
+                        a.onclick = function(e) {
+                            e.preventDefault();
+                            document.getElementById('targetUrl').value = this.href;
+                            fetchSiteData();
+                        };
+                    }
+                }
+
+            } catch (error) {
+                viewer.innerHTML = `<p style="color:red; font-weight:bold;">【取得失敗】<br>理由: ${error.message}<br>※学校の制限ではなく、相手のサイトが拒否している可能性があります。</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
